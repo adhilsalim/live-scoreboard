@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Live Scoreboard</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+
+        #teamList {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .team-item {
+            display: flex;
+            justify-content: space-between;
+            width: 300px;
+            margin: 10px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Scoreboard</h1>
+    <div id="teamList"></div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080');
+        const teamList = document.getElementById('teamList');
+
+        // Handle WebSocket messages
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'teamUpdate') {
+                renderTeams(data.teams);
+            }
+        };
+
+        // Render teams list
+        function renderTeams(teams) {
+            teamList.innerHTML = '';
+            teams.forEach(team => {
+                const teamItem = document.createElement('div');
+                teamItem.classList.add('team-item');
+                teamItem.innerHTML = `
+                    <span>${team.name}</span>
+                    <span>${team.score}</span>
+                `;
+                teamList.appendChild(teamItem);
+            });
+        }
+    </script>
+</body>
+
+</html>
