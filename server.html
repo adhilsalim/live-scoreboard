@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Live Scoreboard Server</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .team-list {
+            margin-top: 20px;
+        }
+
+        .team-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        .delete-btn {
+            color: red;
+            cursor: pointer;
+        }
+
+        #addTeamPopup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border: 1px solid black;
+            z-index: 1000;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Live Scoreboard Server</h1>
+    <button id="addTeamBtn">Add Team</button>
+
+    <div id="addTeamPopup">
+        <input type="text" id="newTeamName" placeholder="Enter Team Name">
+        <button id="confirmAddTeam">Confirm</button>
+        <button id="cancelAddTeam">Cancel</button>
+    </div>
+
+    <div id="teamList" class="team-list"></div>
+
+    <script>
+        const socket = new WebSocket('ws://localhost:8080');
+        const teamList = document.getElementById('teamList');
+        const addTeamBtn = document.getElementById('addTeamBtn');
+        const addTeamPopup = document.getElementById('addTeamPopup');
+        const newTeamNameInput = document.getElementById('newTeamName');
+        const confirmAddTeamBtn = document.getElementById('confirmAddTeam');
+        const cancelAddTeamBtn = document.getElementById('cancelAddTeam');
+
+        // Show add team popup
+        addTeamBtn.onclick = () => {
+            addTeamPopup.style.display = 'block';
+            newTeamNameInput.value = '';
+        };
+
+        // Confirm adding team
+        confirmAddTeamBtn.onclick = () => {
+            const teamName = newTeamNameInput.value.trim();
+            if (teamName) {
+                socket.send(JSON.stringify({
+                    type: 'addTeam',
+                    name: teamName
+                }));
+                addTeamPopup.style.display = 'none';
+            }
+        };
+
+        // Cancel adding team
+        cancelAddTeamBtn.onclick = () => {
+            addTeamPopup.style.display = 'none';
+        };
+
+        // Handle WebSocket messages
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === 'teamUpdate') {
+                renderTeams(data.teams);
+            }
+        };
+
+        // Render teams list
+        function renderTeams(teams) {
+            teamList.innerHTML = '';
+            teams.forEach(team => {
+                const teamItem = document.createElement('div');
+                teamItem.classList.add('team-item');
+                teamItem.innerHTML = `
+                    <span>${team.name}</span>
+                    <input type="number" value="${team.score}" 
+                           onchange="updateScore('${team.name}', this.value)">
+                    <span class="delete-btn" onclick="deleteTeam('${team.name}')">🗑️</span>
+                `;
+                teamList.appendChild(teamItem);
+            });
+        }
+
+        // Update team score
+        function updateScore(teamName, newScore) {
+            socket.send(JSON.stringify({
+                type: 'updateScore',
+                name: teamName,
+                score: parseInt(newScore)
+            }));
+        }
+
+        // Delete team
+        function deleteTeam(teamName) {
+            socket.send(JSON.stringify({
+                type: 'deleteTeam',
+                name: teamName
+            }));
+        }
+    </script>
+</body>
+
+</html>
